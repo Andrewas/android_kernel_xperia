@@ -34,7 +34,7 @@ module_param(emulate_scroll_wheel, bool, 0644);
 MODULE_PARM_DESC(emulate_scroll_wheel, "Emulate a scroll wheel");
 
 static unsigned int scroll_speed = 32;
-static int param_set_scroll_speed(const char *val, struct kernel_param *kp) {
+static int param_set_scroll_speed(const char *val, const struct kernel_param *kp) {
 	unsigned long speed;
 	if (!val || strict_strtoul(val, 0, &speed) || speed > 63)
 		return -EINVAL;
@@ -365,8 +365,10 @@ static int magicmouse_raw_event(struct hid_device *hdev,
 	return 1;
 }
 
-static void magicmouse_setup_input(struct input_dev *input, struct hid_device *hdev)
+static int magicmouse_setup_input(struct hid_device *hdev, struct hid_input *hi)
 {
+	struct input_dev *input = hi->input;
+
 	__set_bit(EV_KEY, input->evbit);
 
 	if (input->id.product == USB_DEVICE_ID_APPLE_MAGICMOUSE) {
@@ -426,6 +428,8 @@ static void magicmouse_setup_input(struct input_dev *input, struct hid_device *h
 		__set_bit(EV_MSC, input->evbit);
 		__set_bit(MSC_RAW, input->mscbit);
 	}
+
+	return 0;
 }
 
 static int magicmouse_input_mapping(struct hid_device *hdev,
@@ -477,12 +481,6 @@ static int magicmouse_probe(struct hid_device *hdev,
 		hid_err(hdev, "magicmouse hw start failed\n");
 		goto err_free;
 	}
-
-	/* We do this after hid-input is done parsing reports so that
-	 * hid-input uses the most natural button and axis IDs.
-	 */
-	if (msc->input)
-		magicmouse_setup_input(msc->input, hdev);
 
 	if (id->product == USB_DEVICE_ID_APPLE_MAGICMOUSE)
 		report = hid_register_report(hdev, HID_INPUT_REPORT,
@@ -548,6 +546,7 @@ static struct hid_driver magicmouse_driver = {
 	.remove = magicmouse_remove,
 	.raw_event = magicmouse_raw_event,
 	.input_mapping = magicmouse_input_mapping,
+	.input_register = magicmouse_setup_input,
 };
 
 static int __init magicmouse_init(void)

@@ -28,10 +28,12 @@ modules.builtin
 *.gz
 *.bz2
 *.lzma
-*.xz
 *.lzo
 *.patch
 *.gcno
+*.config
+*.config.old
+*.cmd
 
 #
 # Top-level generic files
@@ -57,7 +59,6 @@ modules.builtin
 include/config
 include/linux/version.h
 include/generated
-arch/*/include/generated
 
 # stgit generated dirs
 patches-*
@@ -79,3 +80,35 @@ GTAGS
 *.orig
 *~
 \#*#
+
+# compressed boot files
+arch/arm/boot/compressed/lib1funcs.S
+arch/arm/boot/compressed/piggy.gzip
+arch/arm/boot/compressed/vmlinux
+
+arch/arm/boot/Image
+arch/arm/boot/compressed/vmlinux.lds
+arch/arm/boot/zImage
+drivers/gpu/mali/mali400ko/driver/src/devicedrv/mali/__malidrv_build_info.c
+kernel/config_data.h
+kernel/timeconst.h
+lib/crc32table.h
+lib/gen_crc32table
+scripts/kconfig/conf
+scripts/kconfig/lex.zconf.c
+scripts/kconfig/zconf.hash.c
+scripts/kconfig/zconf.tab.c
+scripts/basic/fixdep
+scripts/bin2c
+scripts/genksyms/genksyms
+scripts/genksyms/keywords.c
+scripts/genksyms/lex.c
+scripts/genksyms/parse.c
+scripts/genksyms/parse.h
+scripts/kallsyms
+scripts/mod/elfconfig.h
+scripts/mod/mk_elfconfig
+scripts/mod/modpost
+scripts/recordmcount
+usr/gen_init_cpio
+usr/initramfs_data.cpio

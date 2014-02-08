@@ -1,7 +1,7 @@
 #ifndef LINUX_KEXEC_H
 #define LINUX_KEXEC_H
 
-#ifdef CONFIG_KEXEC
+#if defined(CONFIG_KEXEC) || defined(CONFIG_KEXEC_MODULE)
 #include <linux/types.h>
 #include <linux/list.h>
 #include <linux/linkage.h>
@@ -101,6 +101,10 @@ struct kimage {
 #define KEXEC_TYPE_CRASH   1
 	unsigned int preserve_context : 1;
 
+#ifdef CONFIG_KEXEC_HARDBOOT
+	unsigned int hardboot : 1;
+#endif
+
 #ifdef ARCH_HAS_KIMAGE_ARCH
 	struct kimage_arch arch;
 #endif
@@ -110,6 +114,7 @@ struct kimage {
 
 /* kexec interface functions */
 extern void machine_kexec(struct kimage *image);
+extern void machine_crash_swreset(void);
 extern int machine_kexec_prepare(struct kimage *image);
 extern void machine_kexec_cleanup(struct kimage *image);
 extern asmlinkage long sys_kexec_load(unsigned long entry,
@@ -158,6 +163,7 @@ unsigned long paddr_vmcoreinfo_note(void);
 
 extern struct kimage *kexec_image;
 extern struct kimage *kexec_crash_image;
+extern struct atomic_notifier_head crash_percpu_notifier_list;
 
 #ifndef kexec_flush_icache_page
 #define kexec_flush_icache_page(page)
@@ -165,6 +171,11 @@ extern struct kimage *kexec_crash_image;
 
 #define KEXEC_ON_CRASH		0x00000001
 #define KEXEC_PRESERVE_CONTEXT	0x00000002
+
+#ifdef CONFIG_KEXEC_HARDBOOT
+#define KEXEC_HARDBOOT		0x00000004
+#endif
+
 #define KEXEC_ARCH_MASK		0xffff0000
 
 /* These values match the ELF architecture values.
@@ -183,10 +194,14 @@ extern struct kimage *kexec_crash_image;
 #define KEXEC_ARCH_MIPS    ( 8 << 16)
 
 /* List of defined/legal kexec flags */
-#ifndef CONFIG_KEXEC_JUMP
-#define KEXEC_FLAGS    KEXEC_ON_CRASH
-#else
+#if defined(CONFIG_KEXEC_JUMP) && defined(CONFIG_KEXEC_HARDBOOT)
+#define KEXEC_FLAGS    (KEXEC_ON_CRASH | KEXEC_PRESERVE_CONTEXT | KEXEC_HARDBOOT)
+#elif defined(CONFIG_KEXEC_JUMP)
 #define KEXEC_FLAGS    (KEXEC_ON_CRASH | KEXEC_PRESERVE_CONTEXT)
+#elif defined(CONFIG_KEXEC_HARDBOOT)
+#define KEXEC_FLAGS    (KEXEC_ON_CRASH | KEXEC_HARDBOOT)
+#else
+#define KEXEC_FLAGS    (KEXEC_ON_CRASH)
 #endif
 
 #define VMCOREINFO_BYTES           (4096)

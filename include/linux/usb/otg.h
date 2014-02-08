@@ -41,6 +41,11 @@ enum usb_xceiv_events {
 	USB_EVENT_ID,           /* id was grounded */
 	USB_EVENT_CHARGER,      /* usb dedicated charger */
 	USB_EVENT_ENUMERATED,   /* gadget driver enumerated */
+	USB_EVENT_RIDA,
+	USB_EVENT_RIDB,
+	USB_EVENT_RIDC,
+	USB_EVENT_PREPARE,	/* restore context and clocks */
+	USB_EVENT_CLEAN,	/* disable clocks */
 };
 
 struct otg_transceiver;
@@ -106,7 +111,8 @@ struct otg_transceiver {
 				int suspend);
 
 	/* for B devices only:  start session with A-Host */
-	int	(*start_srp)(struct otg_transceiver *otg);
+	int	(*start_srp)(struct otg_transceiver *otg,
+				unsigned mA);
 
 	/* start or continue HNP role switch */
 	int	(*start_hnp)(struct otg_transceiver *otg);
@@ -232,9 +238,9 @@ otg_set_suspend(struct otg_transceiver *otg, int suspend)
 }
 
 static inline int
-otg_start_srp(struct otg_transceiver *otg)
+otg_start_srp(struct otg_transceiver *otg, unsigned mA)
 {
-	return otg->start_srp(otg);
+	return otg->start_srp(otg, mA);
 }
 
 /* notifiers */

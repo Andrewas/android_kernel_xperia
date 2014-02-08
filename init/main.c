@@ -69,6 +69,8 @@
 #include <linux/slab.h>
 #include <linux/perf_event.h>
 #include <linux/random.h>
+#include <linux/boottime.h>
+#include <linux/pasr.h>
 
 #include <asm/io.h>
 #include <asm/bugs.h>
@@ -78,6 +80,10 @@
 
 #ifdef CONFIG_X86_LOCAL_APIC
 #include <asm/smp.h>
+#endif
+
+#ifdef CONFIG_CRASH_NOTES
+#include <asm/crash_notes.h>
 #endif
 
 static int kernel_init(void *);
@@ -487,6 +493,9 @@ asmlinkage void __init start_kernel(void)
 	page_address_init();
 	printk(KERN_NOTICE "%s", linux_banner);
 	setup_arch(&command_line);
+#ifdef CONFIG_PASR
+	early_pasr_setup();
+#endif
 	mm_init_owner(&init_mm, &init_task);
 	mm_init_cpumask(&init_mm);
 	setup_command_line(command_line);
@@ -552,12 +561,21 @@ asmlinkage void __init start_kernel(void)
 
 	kmem_cache_init_late();
 
+#ifdef CONFIG_PASR
+	late_pasr_setup();
+#endif
+
 	/*
 	 * HACK ALERT! This is early. We're enabling the console before
 	 * we've done PCI setups etc, and console_init() must be aware of
 	 * this. But we do want output early, in case something goes wrong.
 	 */
 	console_init();
+
+#ifdef CONFIG_CRASH_NOTES
+	crash_notes_init();
+#endif
+
 	if (panic_later)
 		panic(panic_later, panic_param);
 
@@ -666,6 +684,8 @@ int __init_or_module do_one_initcall(initcall_t fn)
 	int count = preempt_count();
 	int ret;
 
+	boottime_mark_symbolic(fn);
+
 	if (initcall_debug)
 		ret = do_one_initcall_debug(fn);
 	else
@@ -742,6 +762,7 @@ static noinline int init_post(void)
 {
 	/* need to finish all async __init code before freeing the memory */
 	async_synchronize_full();
+	boottime_deactivate();
 	free_initmem();
 	mark_rodata_ro();
 	system_state = SYSTEM_RUNNING;
@@ -801,6 +822,7 @@ static int __init kernel_init(void * unused)
 
 	do_pre_smp_initcalls();
 	lockup_detector_init();
+	boottime_system_up();
 
 	smp_init();
 	sched_init_smp();
@@ -823,6 +845,7 @@ static int __init kernel_init(void * unused)
 
 	if (sys_access((const char __user *) ramdisk_execute_command, 0) != 0) {
 		ramdisk_execute_command = NULL;
+		boottime_mark("mount+0x0/0x0");
 		prepare_namespace();
 	}
 
